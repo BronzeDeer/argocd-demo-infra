@@ -1,0 +1,91 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: team-b-root
+  # Deploy into the teams's app namespace, necessary to due to the project
+  namespace: app-team-b
+
+  finalizers:
+    # Delete the dependent resources when this app is deleted.
+    # You probably don't want to use this to avoid accidents at platform level wiping out all resources under control of the different team
+    - resources-finalizer.argocd.argoproj.io/foreground
+spec:
+  # This application belongs to the project which limits what it can deploy
+  # This is important since the application loads code controlled by another team
+  project: team-b
+
+  destination:
+    # Deploy into local kubernetes
+    namespace: team-b
+    name: in-cluster
+
+  source:
+    repoURL: https://github.com/BronzeDeer/argocd-demo-team-a.git
+    targetRevision: HEAD
+    # Where to expect the "entry point" (the root of the team's app-of-app tree).
+    # These manifest can be in any form that argocd recognizes, by default it checks helm chart -> kustomize -> jsonnet + plain yaml
+    # It is recommended to use helm or jsonnet to avoid needing to hardcode relevant attributes like repoUrl, path, namespace, project etc.
+    path: ./argocd-root
+
+    # Pass relevant parameters in case the entry-point is a helm chart
+    # helm:
+    #   # Use ArgoCD Environment where possible to pass relevant info to the child app (https://argo-cd.readthedocs.io/en/stable/user-guide/build-environment/)
+    #   # This is more robust than expecting the author of this chart to keep the values above (repoURL etc) and here in sync manually)
+    #   # The _argoCD struct is a convention that should be standardized on inside the organization
+    #   parameters:
+    #     - name: _argoCD.repoURL
+    #       value: $ARGOCD_APP_SOURCE_REPO_URL
+    #     - name: _argoCD.targetRevision
+    #       # Use the resolved revision rather than the target Revision to maintain sync with parent
+    #       value: $ARGOCD_APP_REVISION
+    #     - name: _argoCD.path
+    #       value: $ARGOCD_APP_SOURCE_PATH
+    #     - name: _argoCD.deployNamespace
+    #       value: $ARGOCD_APP_NAMESPACE
+    #     # These currently do not have a fitting environment variable
+    #     - name: _argoCD.appNamespace
+    #       value: app-team-b
+    #     - name: _argoCD.appProject
+    #       value: team-b
+    #     - name: _argoCD.destinationName
+    #       value: "in-cluster"
+
+    # Pass _argoCD parameters as jsonnet top-level argument in case the entry point is jsonnet
+    directory:
+      # Do not recurse into the directory, otherwise unexpected yaml files might be picked up
+      # When using jsonnet or kustomize, the entry point has full ability to decide which additional files to include
+      recurse: false
+      jsonnet:
+        tlas:
+          - name: _argoCD
+            value: |
+              {
+                repoURL: "$ARGOCD_APP_SOURCE_REPO_URL",
+                targetRevision: "$ARGOCD_APP_REVISION",
+                path: "$ARGOCD_APP_SOURCE_PATH",
+                deployNamespace: "$ARGOCD_APP_NAMESPACE",
+                appNamespace: "app-team-b",
+                appProject: "team-b",
+                destinationName: "in-cluster",
+              }
+            # Do not interpret as plain string, instead parse as expression (defining an object)
+            code: true
+
+          # Some demo values
+          - name: _clusterInfo
+            code: true
+            value: |
+              {
+                # The platform can decide to namespace the teams on the DNS hierarchy
+                # It is the patform's responsibility to avoid collision between tenants
+                baseDomain: "team-b.cloud.consileo.de",
+                ingressAnnotations: {
+                  "cert-manager.io/cluster-issuer": "letsencrypt",
+                },
+                ingressClass: "nginx",
+              }
+
+  syncPolicy:
+    automated: # automated sync by default retries failed attempts 5 times with following delays between attempts ( 5s, 10s, 20s, 40s, 80s ); retry controlled using `retry` field.
+      prune: true # Specifies if resources should be pruned during auto-syncing ( false by default ).
+      selfHeal: true # Specifies if partial app sync should be executed when resources are changed only in target Kubernetes cluster and no git change detected ( false by default ).

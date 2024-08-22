@@ -6,10 +6,12 @@ metadata:
     app.kubernetes.io/name: argocd-rbac-cm
     app.kubernetes.io/part-of: argocd
 data:
-  # Make our demo user alice part of team-a
+  # Make our demo users alice and bob part of team-a and team-b respectively
+  # Bob will take the read-write role for team-b
   policy.csv: |
     g, robbie, role:readonly
     g, alice, proj:team-a:read-only
+    g, bob, proj:team-b:read-write
 
   # All sso users get atleast this role
   policy.default: role:readonly

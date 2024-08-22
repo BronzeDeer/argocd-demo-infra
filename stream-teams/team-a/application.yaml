@@ -71,6 +71,20 @@ spec:
             # Do not interpret as plain string, instead parse as expression (defining an object)
             code: true
 
+          # Some demo values
+          - name: _clusterInfo
+            code: true
+            value: |
+              {
+                # The platform can decide to namespace the teams on the DNS hierarchy
+                # It is the patform's responsibility to avoid collision between tenants
+                baseDomain: "team-a.cloud.colenio.de",
+                ingressAnnotations: {
+                  "cert-manager.io/cluster-issuer": "letsencrypt",
+                },
+                ingressClass: "nginx",
+              }
+
   syncPolicy:
     automated: # automated sync by default retries failed attempts 5 times with following delays between attempts ( 5s, 10s, 20s, 40s, 80s ); retry controlled using `retry` field.
       prune: true # Specifies if resources should be pruned during auto-syncing ( false by default ).

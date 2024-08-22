@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-b
+  namespace: argocd
+  # Finalizer that ensures that project is not deleted until it is not referenced by any application
+  # If you want the ability to withdraw support for the team without cooperation, then do not use finalizer or delete it manually
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+
+  description: "Project for self management of team A"
+
+  sourceRepos:
+    # Example: lock the team into a single repo, this forces vendoring of all charts and other dependencies (good for airgapped environments and enforcing auditability)
+    # - https://github.com/BronzeDeer/argocd-demo-team-a.git
+    # Do not allow the team to deploy the infra repo, the team might not have access, but the argocd-repo-server has.
+    # If certain repositories need to be locked down to not leak secrets, this can be used to avoid leakage via argocd
+    - '!https://github.com/BronzeDeer/argocd-demo-infra.git'
+
+  # Creation of Namespaced resources defaults to allow (unless using namespaceResourceWhitelist)
+
+  # Creation of cluster-wide resources defaults to deny and can only be whitelisted explicitly using clusterResourceWhitelist
+
+  roles:
+  # A role which provides read-only access to all applications in the project
+  - name: read-only
+    description: Read-only privileges
+    policies:
+    - p, proj:team-b:read-only, applications, get, team-b/*, allow
+    groups:
+      # These groups are read from the group claim from sso (or via the static argo-rbac users)
+    - dev-team-b
+    - dev-team-b-ro
+
+  - name: read-write
+    description: Allow viewing and updating existing applications
+    policies:
+    - p, proj:team-b:read-write, applications, get, team-b/*, allow
+    - p, proj:team-b:read-write, applications, update, team-b/*, allow
+    groups:
+      # These groups are read from the group claim from sso (or via the static argo-rbac users)
+    - dev-team-b-rw
+
+  destinations:
+    # Ensure the team can only deploy into namespaces prefixed with "team-b-",
+    # this will likely get a more robust alternative once hierarchical namespaces are generally available
+    - namespace: "team-b-*"
+      name: in-cluster
+      server: https://kubernetes.default.svc
+
+    - namespace: "team-b"
+      server: https://kubernetes.default.svc
+      name: in-cluster
+
+    # Also allow deploying into the teams app namespace so that they can use app-of-apps
+
+    - namespace: "app-team-b"
+      server: https://kubernetes.default.svc
+      name: in-cluster
+
+
+  # Only allow apps in this project to be read from the specific app name space of team-b
+  sourceNamespaces:
+    - app-team-b
+
+  # If the argocd instance manages multiple clusters, we can restrict this project only to explicitly whitelisted clusters
+  # By default, if using only the cluster that argocd is deployed into (in-cluster), we disable this, since the default cluster has no whitelisting
+  permitOnlyProjectScopedClusters: false

@@ -1,0 +1,11 @@
+# App namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app-team-a
+---
+# Deployment namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-a

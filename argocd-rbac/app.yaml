@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-rbac
+  namespace: argocd
+
+  finalizers:
+    # Delete the dependent resources when this app is deleted.
+    # You probably don't want to use this to avoid accidents at platform level wiping out all resources under control of the different team
+    - resources-finalizer.argocd.argoproj.io/foreground
+spec:
+  project: default
+
+  destination:
+    # Deploy into local kubernetes
+    namespace: argocd
+    name: in-cluster
+
+  source:
+    repoURL: https://github.com/BronzeDeer/argocd-demo-infra.git
+    targetRevision: HEAD
+    path: ./argocd-rbac/manifests
+
+  syncPolicy:
+    automated: # automated sync by default retries failed attempts 5 times with following delays between attempts ( 5s, 10s, 20s, 40s, 80s ); retry controlled using `retry` field.
+      prune: true # Specifies if resources should be pruned during auto-syncing ( false by default ).
+      selfHeal: true # Specifies if partial app sync should be executed when resources are changed only in target Kubernetes cluster and no git change detected ( false by default ).

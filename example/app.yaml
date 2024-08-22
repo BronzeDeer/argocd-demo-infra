@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: plattform-root
+  # Deploy into the teams's app namespace, necessary to due to the project
+  namespace: argocd
+
+  finalizers:
+    # Delete the dependent resources when this app is deleted. 
+    # You probably don't want to use this to avoid accidents at platform level wiping out all resources under control of the different team
+    - resources-finalizer.argocd.argoproj.io/foreground
+spec:
+  # This application belongs to the project which limits what it can deploy
+  # This is important since the application loads code controlled by another team
+  project: default
+
+  destination:
+    # Deploy into local kubernetes
+    namespace: argocd
+    name: in-cluster
+
+  source:
+    repoURL: https://github.com/BronzeDeer/argocd-demo-infra.git
+    targetRevision: HEAD
+    # Where to expect the "entry point" (the root of the team's app-of-app tree). 
+    # These manifest can be in any form that argocd recognizes, by default it checks helm chart -> kustomize -> jsonnet + plain yaml
+    # It is recommended to use helm or jsonnet to avoid needing to hardcode relevant attributes like repoUrl, path, namespace, project etc.
+    path: ./
+
+    directory:
+      # Only target main.jsonnet in the repo root
+      include: "main.jsonnet"
+
+      jsonnet:
+        tlas:
+          - name: targetRevision
+            code: false
+            # Use the resolved revision rather than the target Revision to maintain sync with parent
+            value: $ARGOCD_APP_REVISION
+
+  syncPolicy:
+    automated: # automated sync by default retries failed attempts 5 times with following delays between attempts ( 5s, 10s, 20s, 40s, 80s ); retry controlled using `retry` field.
+      prune: true # Specifies if resources should be pruned during auto-syncing ( false by default ).
+      selfHeal: true # Specifies if partial app sync should be executed when resources are changed only in target Kubernetes cluster and no git change detected ( false by default ).

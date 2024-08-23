@@ -6,4 +6,7 @@ function(targetRevision="HEAD") [
 
   std.parseYaml(importstr './stream-teams/app.yaml')
   + {spec+: {source+: { targetRevision: targetRevision}}},
+
+  std.parseYaml(importstr './apps/argo-rollouts/app.yaml')
+  + {spec+: {source+: { targetRevision: targetRevision}}},
 ]

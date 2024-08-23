@@ -78,7 +78,7 @@ spec:
               {
                 # The platform can decide to namespace the teams on the DNS hierarchy
                 # It is the patform's responsibility to avoid collision between tenants
-                baseDomain: "team-a.cloud.colenio.de",
+                baseDomain: "team-a.cloud.consileo.de",
                 ingressAnnotations: {
                   "cert-manager.io/cluster-issuer": "letsencrypt",
                 },

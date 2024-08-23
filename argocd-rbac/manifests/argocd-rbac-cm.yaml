@@ -10,3 +10,6 @@ data:
   policy.csv: |
     g, robbie, role:readonly
     g, alice, proj:team-a:read-only
+
+  # All sso users get atleast this role
+  policy.default: role:readonly

@@ -12,3 +12,6 @@ data:
     g, robbie, role:readonly
     g, alice, proj:team-a:read-only
     g, bob, proj:team-b:read-write
+
+  # All sso users get atleast this role
+  policy.default: role:readonly

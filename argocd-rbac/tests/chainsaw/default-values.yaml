@@ -1,0 +1,6 @@
+argoRepoURL: https://github.com/BronzeDeer/argocd-demo-infra.git
+argoTargetRevision: HEAD
+pathFromRepoRoot: ./argocd-rbac/tests/core/source
+argoProject: default
+# Namespace where argo is deployed and will therefore accept apps in the default projects and AppProject resources
+argoNamespace: argocd

@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argo-test-plain
+data:
+  deployedBy: chainsaw

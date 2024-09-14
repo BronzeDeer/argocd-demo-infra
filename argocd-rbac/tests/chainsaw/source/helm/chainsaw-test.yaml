@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  creationTimestamp: null
+  name: source-helm
+spec:
+  concurrent: true
+  template: true
+  description: Smoke test to validate that deploying from helm charts is possible
+  steps:
+    - description: Test templating helm chart
+      name: template-helm
+      try:
+        - create:
+            file: ./helm-app.yaml
+            outputs:
+              - name: argoApp
+                value: (@)
+                match:
+                  kind: Application
+            expect:
+              - check:
+                  ($error == null): true
+
+
+        # Assert that the app got created and status changed to healthy
+        - description: Assert App got synced and healthy
+          assert:
+            resource:
+              apiVersion: ($argoApp.apiVersion)
+              kind: ($argoApp.kind)
+              metadata:
+                name: ($argoApp.metadata.name)
+                namespace: ($argoApp.metadata.namespace)
+              status:
+                health:
+                  status: Healthy
+                sync:
+                  status: Synced
+
+        # Assert that the configmap got created and got the same name as the argo-app due to release name passing
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: ($argoApp.metadata.name)
+      catch:
+        - events:
+            namespace: ($argoApp.metadata.namespace)
+            name: ($argoApp.metadata.name)

@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/test-chainsaw-v1alpha1.json
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  creationTimestamp: null
+  name: source-plain
+spec:
+  concurrent: true
+  template: true
+  description: Smoke test to validate that deploying from plain manifests is possible
+  steps:
+      # Create argo App pointing at the manifests for this test
+    - description: Test templating plain manifests
+      name: template-directory-jsonnet
+      try:
+      - create:
+          file: ./plain-app.yaml
+          outputs:
+            - name: argoApp
+              value: (@)
+              match:
+                kind: Application
+          expect:
+            - check:
+                ($error == null): true
+
+
+      # Assert that the app got created and status changed to healthy
+      - description: Assert App got synced and healthy
+        assert:
+          resource:
+            apiVersion: ($argoApp.apiVersion)
+            kind: ($argoApp.kind)
+            metadata:
+              name: ($argoApp.metadata.name)
+              namespace: ($argoApp.metadata.namespace)
+            status:
+              health:
+                status: Healthy
+              sync:
+                status: Synced
+      - assert:
+          file: ../manifests/plain/cm.yaml
+
+      catch:
+        - events: {}
+        - describe:
+            apiVersion: ($argoApp.apiVersion)
+            kind: ($argoApp.apiVersion)
+

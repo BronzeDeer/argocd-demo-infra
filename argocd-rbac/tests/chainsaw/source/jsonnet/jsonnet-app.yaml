@@ -13,10 +13,11 @@ spec:
     targetRevision: ($values.argoTargetRevision)
     path: (join('/', [$values.pathFromRepoRoot, 'source/manifests/plain']))
 
+    directory:
+      jsonnet: {}
+
   project: ($values.argoProject)
 
-  directory:
-    jsonnet: {}
 
   destination:
     server: https://kubernetes.default.svc

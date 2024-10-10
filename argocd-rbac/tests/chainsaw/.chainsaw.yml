@@ -1,8 +1,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/kyverno/chainsaw/main/.schemas/json/configuration-chainsaw-v1alpha2.json
 apiVersion: chainsaw.kyverno.io/v1alpha2
 kind: Configuration
+metadata:
+  name: argo-tests
 spec:
   discovery:
     testFile: chainsaw-test
     fullName: true
-    includeTestRegex: '**/'
+  report:
+    format: XML
+    name: chainsaw-report
